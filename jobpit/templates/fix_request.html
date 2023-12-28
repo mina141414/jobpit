@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}打刻修正{% endblock %}
+
+{% block navbar %}
+<ul class="navbar-nav mr-auto">
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'records' %}">出勤簿</a>
+  </li>
+  <li class="nav-item activate">
+    <a class="nav-link disabled">打刻修正</a>
+  </li>
+</ul>
+{% if request.user.is_staff %}
+    <li>
+      <a class="nav-link" href="{% url 'fix_acception' %}">打刻承認</a>
+    </li>
+{% endif %}
+<span class="navbar-text">
+  <a href="{% url 'logout' %}">ログアウト</a>
+</span>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<h2>打刻修正</h2>
+<form>
+  <div class="form-group row">
+    <div class="col-4">
+      <label for="control-label">日付</label>
+    </div>
+    <div class="col-6">
+      <input class="form-control" type="date" id="push_date">
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-4">
+      <label for="control-label">打刻の種類</label>
+    </div>
+    <div class="col-6">
+      <select class="form-control" id="push_type">
+        <option value="AT">出勤</option>
+        <option value="LE">退勤</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-4">
+      <label for="control-label">修正時刻</label>
+    </div>
+    <div class="col-6">
+      <input class="form-control" type="time" id="push_time">
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-4">
+      <label for="control-label">修正理由</label>
+    </div>
+    <div class="col-6">
+      <textarea class="form-control" id="push_reason" rows="5"></textarea>
+    </div>
+  </div>
+  <div class="form-group row justify-content-center">
+    <button type="button" id='submit_request' class="btn btn-success btn-lg col-6">申請</button>
+  </div>
+</form>
+
+<h2>申請一覧</h2>
+{% if fix_requests %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">日付</th>
+        <th scope="col">打刻の種別</th>
+        <th scope="col">修正時刻</th>
+        <th scope="col">申請状況</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fix_request in fix_requests %}
+      <tr>
+        <td>{{ fix_request.date }}</td>
+        <!-- 打刻種別 -->
+        {% if fix_request.stamp_type == 'attendance' %}
+          <td>出勤</td>
+        {% elif fix_request.stamp_type == 'leave' %}
+          <td>退勤</td>
+        {% endif %}
+        <td>{{ fix_request.revision_time }}</td>
+        <!-- 申請状況 -->
+        {% if fix_request.request_status == 'accepted' %}
+          <td>承認</td>
+        {% elif fix_request.request_status == 'rejected' %}
+          <td>却下</td>
+        {% else %}
+          <td>申請中</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+{% endif %}
+
+<script>
+  $('#submit_request').on('click', function() {
+    var isEmpty = false;
+    // フォームのバリデーション
+    jQuery('#push_date, #push_type, #push_time, #push_reason').each(function(){
+      if(jQuery(this).val() === ''){
+        alert('未入力の項目があります');
+        $(this).focus();
+        isEmpty = true;
+        return false;
+      }
+    });
+    if (isEmpty) {
+      return false;
+    }
+
+    $.ajax({
+      url: "{% url 'fix_request' %}",
+      method: 'POST',
+      dataType: 'json',
+      data: {
+        push_date: $('#push_date').val(),
+        push_type: $('#push_type').val(),
+        push_time: $('#push_time').val(),
+        push_reason: $('#push_reason').val(),
+      },
+      beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          var csrfToken = getCookie("csrftoken");
+          xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        }
+      },
+    })
+    .done(function (data) {
+      console.log(data);
+      alert('申請しました');
+      window.location.reload();
+    })
+    .fail(function(XMLHttpRequest, textStatus, errorThrown) {
+      alert('問題が発生しました。');
+    });
+  });
+</script>
+{% endblock %}

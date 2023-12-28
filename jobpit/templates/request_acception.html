@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}申請一覧{% endblock %}
+
+{% block navbar %}
+<ul class="navbar-nav mr-auto">
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'records' %}">出勤簿</a>
+  </li>
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'fix_request' %}">打刻修正</a>
+  </li>
+  <li>
+    <a class="nav-link disabled">打刻承認</a>
+  </li>
+</ul>
+<span class="navbar-text">
+  <a href="{% url 'logout' %}">ログアウト</a>
+</span>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<h2>申請一覧</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">申請ID</th>
+      <th scope="col">ユーザー名</th>
+      <th scope="col">申請日時</th>
+      <th scope="col">確認状況</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fix_request in fix_requests %}
+    <tr>
+        <td><a href="{% url 'acception_detail' fix_request.id %}">{{ fix_request.id }}</a></td>
+        <td>{{ fix_request.user_name }}</td>
+        <td>{{ fix_request.request_time }}</td>
+      <!-- 確認状況 -->
+      {% if fix_request.request_status == 'accepted' %}
+        <td>承認</td>
+      {% elif fix_request.request_status == 'rejected' %}
+        <td>却下</td>
+      {% else %}
+        <td>未確認</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

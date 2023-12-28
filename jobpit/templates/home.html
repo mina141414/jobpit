@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+ 
+{% block title %}Home{% endblock %}
+{% block navbar %}
+<ul class="navbar-nav mr-auto">
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'records' %}">出勤簿</a>
+  </li>
+</ul>
+<li class="nav-item activate">
+  <a class="nav-link" href="{% url 'fix_request' %}">打刻修正</a>
+</li>
+{% if request.user.is_staff %}
+    <li>
+      <a class="nav-link" href="{% url 'fix_acception' %}">打刻承認</a>
+    </li>
+{% endif %}
+ <span class="navbar-text">
+   <a href="{% url 'logout' %}">ログアウト</a>
+ </span>
+{% endblock %}
+{% block content %}
+{% csrf_token %}
+<h2>こんにちは{{ user.username }}さん!</h2>
+<div class="row justify-content-md-center bg-light">
+  <h1 class="display-4" id='myClock'></h1>
+</div>
+<div class="container my-2">
+  <div class="row">
+    <div class="d-grid gap-2 mx-auto">
+      <button id='attendance_button' type="button" class="btn btn-lg btn-success">出勤</button>
+    </div>
+    <div class="d-grid gap-2 mx-auto">
+      <button id='leave_button' type="button" class="btn btn-lg btn-danger">退勤</button>
+    </div>
+  </div>
+</div>
+<div id="push_result" class="alert" role="alert" style="display:none"></div>
+
+<script>
+    // 時間をリアルタイム表示する
+    function updateClock() {
+      var now = new Date();
+      var hour = now.getHours();
+      var minute = now.getMinutes();
+      var second = now.getSeconds();
+      if ( hour < 10 ) hour = "0" + hour;
+      if ( minute < 10 ) minute = "0" + minute;
+      if ( second < 10 ) second = "0" + second;
+      document.getElementById('myClock').innerHTML = hour+":"+minute+":"+second;
+    }
+    setInterval("updateClock();", 1000);
+  
+    $('#attendance_button').on('click', function () {
+      $('#push_result').removeClass('alert-danger');
+      $('#push_result').removeClass('alert-info');
+      $('#push_result').hide();
+  
+      $.ajax({
+        url: "{% url 'push' %}",
+        method: "POST",
+        dataType: 'json',
+        data: {
+          push_type: 'attendance'
+        },
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            var csrfToken = getCookie("csrftoken");
+            xhr.setRequestHeader("X-CSRFToken", csrfToken);
+          }
+        },
+      })
+      .done(function (data) {
+        console.log(data);
+        console.log(data.attendance_time);
+        if (data.result == 'success'){
+          $('#push_result').text('出勤しました： ' + data.attendance_time);
+          $('#push_result').addClass('alert-info');
+          $('#push_result').show();
+        } else {
+          $('#push_result').text('すでに打刻しています');
+          $('#push_result').addClass('alert-danger');
+          $('#push_result').show();
+        }
+      });
+    });
+  
+    $('#leave_button').on('click', function () {
+      $('#push_result').removeClass('alert-danger');
+      $('#push_result').removeClass('alert-info');
+      $('#push_result').hide();
+      $.ajax({
+        url: "{% url 'push' %}",
+        method: "POST",
+        dataType: 'json',
+        data: {
+          push_type: 'leave'
+        },
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            var csrfToken = getCookie("csrftoken");
+            xhr.setRequestHeader("X-CSRFToken", csrfToken);
+          }
+        },
+      })
+      .done(function (data) {
+        console.log(data);
+        if (data.result == 'success'){
+          $('#push_result').text('退勤しました： ' + data.leave_time);
+          $('#push_result').addClass('alert-info');
+          $('#push_result').show();
+        }
+        else if (data.result == 'not_attended') {
+          $('#push_result').text('まだ出勤打刻がされていません');
+          $('#push_result').addClass('alert-danger');
+          $('#push_result').show();
+        } else {
+          $('#push_result').text('すでに退勤打刻されています');
+          $('#push_result').addClass('alert-danger');
+          $('#push_result').show();
+        }
+      });
+    });
+</script>
+{% endblock %}
+ 

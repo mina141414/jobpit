@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}出勤簿{% endblock %}
+{% block navbar %}
+<ul class="navbar-nav mr-auto">
+    <li class="nav-item activate">
+      <a class="nav-link disabled">出勤簿</a>
+    </li>
+</ul>
+<li class="nav-item activate">
+  <a class="nav-link" href="{% url 'fix_request' %}">打刻修正</a>
+</li>
+{% if request.user.is_staff %}
+    <li>
+      <a class="nav-link" href="{% url 'fix_acception' %}">打刻承認</a>
+    </li>
+{% endif %}
+<span class="navbar-text">
+  <a href="{% url 'logout' %}">ログアウト</a>
+</span>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<h2>出勤簿</h2>
+<div class="form-group">
+    <div class="row justify-content-center d-flex align-items-center">
+      <label class="control-label">確認したい勤怠月</label>
+      <div class="col-4">
+        <input type="month" id="search_param">
+      </div>
+      <div class="col-4">
+        <button type="button" id='month_search' class="btn btn-primary btn-sm">検索</button>
+      </div>
+    </div>
+</div>
+{% if attendances %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">日付</th>
+        <th scope="col">出勤時間</th>
+        <th scope="col">退勤時間</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for attendance in attendances %}
+      <tr>
+        <td>{{ attendance.date }}</td>
+        <td>{{ attendance.attendance_at }}</td>
+        {% if attendance.leave_at == None %}
+          <td>(勤務中)</td>
+        {% elif attendance.leave_at == 'not_pushed' %}
+          <td class="text-danger">打刻されていません</td>
+        {% else %}
+          <td>{{ attendance.leave_at }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div class="p-3 mb-2 bg-light text-dark">勤怠の記録がありません</div>
+{% endif %}
+<script>
+    $('#month_search').on('click', function() {
+      var searchParam = $('#search_param').val();
+      window.location.href = "{% url 'records' %}?year_month=" + searchParam;
+    });
+</script>
+{% endblock %}

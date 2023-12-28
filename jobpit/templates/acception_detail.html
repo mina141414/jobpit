@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}申請承認{% endblock %}
+
+{% block navbar %}
+<ul class="navbar-nav mr-auto">
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'records' %}">出勤簿</a>
+  </li>
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'fix_request' %}">打刻修正</a>
+  </li>
+  <li class="nav-item activate">
+    <a class="nav-link" href="{% url 'fix_acception' %}">打刻承認</a>
+  </li>
+</ul>
+<span class="navbar-text">
+  <a href="{% url 'logout' %}">ログアウト</a>
+</span>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<h2>申請詳細</h2>
+<div class="form-group row">
+  <div class="col-4">
+    <label for="control-label">申請ID</label>
+  </div>
+  <div class="col-6" id='request_id'>
+    <p>{{ request_detail.pk }}</p>
+  </div>
+</div>
+<div class="form-group row">
+  <div class="col-4">
+    <label for="control-label">申請者</label>
+  </div>
+  <div class="col-6">
+    <p>{{ request_detail.user.username }}</p>
+  </div>
+</div>
+<div class="form-group row">
+  <div class="col-4">
+    <label for="control-label">打刻種別</label>
+  </div>
+  <div class="col-6">
+    {% if request_detail.get_stamp_type_display == 'attendance' %}
+      <p>出勤</p>
+    {% elif request_detail.get_stamp_type_display == 'leave' %}
+      <p>退勤</p>
+    {% endif %}
+  </div>
+</div>
+<div class="form-group row">
+  <div class="col-4">
+    <label for="control-label">修正日時</label>
+  </div>
+  <div class="col-6">
+    <p>{{ request_detail.revision_time }}</p>
+  </div>
+</div>
+<div class="form-group row">
+  <div class="col-4">
+    <label for="control-label">修正理由</label>
+  </div>
+  <div class="col-6">
+    <p>{{ request_detail.reason }}</p>
+  </div>
+</div>
+<div class="container my-2 row">
+    <div class="col-6">
+      <button class="btn btn-lg btn-success" value="accept">承認</button>
+    </div>
+    <div class="col-6">
+      <button class="btn btn-lg btn-danger" value="reject">却下</button>
+    </div>
+  </div>
+    
+  <script>
+  $('button').on('click', function () {
+    var btnValue = $(this).attr("value");
+    var request_id = $('#request_id').text();
+    $.ajax({
+      url: "{% url 'push_acception' %}",
+      method: 'POST',
+      dataType: 'json',
+      data: {
+        result: btnValue,
+        request_id: request_id
+      },
+      beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          var csrfToken = getCookie("csrftoken");
+          xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        }
+      },
+    })
+    .done(function (data) {
+      console.log(data);
+      if (data.result == 'acception_exists') {
+        alert('すでに確認されています');
+      } else {
+        alert('処理を完了しました');
+      }
+    })
+  })
+</script>
+{% endblock %}
